@@ -1,12 +1,15 @@
+extern crate threadpool;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 mod http_parser;
-use http_parser::{Request, QueryStringParam /*, MethodKind, CacheControl, HttpVersion */};
+use http_parser::{Request, QueryStringParam};
 use http_parser::HttpHeader::*;
+use threadpool::ThreadPool;
 
-fn handle_connection(stream: &mut TcpStream) {
-    
-    let request = Request::parse(stream).unwrap();
+
+fn handle_connection(stream: Box<TcpStream>) {
+    let mut stream = *stream;
+    let request = Request::parse(&mut stream).unwrap();
     match request.get_parsed_header("Host") {
         Some(Host {name,port }) => println!("host:{} port:{}",name,port),
         _ => println!("missing host")
@@ -27,10 +30,13 @@ fn handle_connection(stream: &mut TcpStream) {
 
 
 fn main() {
+    let pool = ThreadPool::new(4);
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
 
     for stream in listener.incoming() {
-        let mut stream = stream.unwrap();
-        handle_connection(&mut stream);
+        let mut stream = Box::new(stream.unwrap());
+        pool.execute(move || {
+            handle_connection(stream);
+        });
     }
 }
