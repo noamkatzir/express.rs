@@ -1,2 +1,4 @@
 /target
 **/*.rs.bk
+/node/node_modules
+/node/package-lock.json

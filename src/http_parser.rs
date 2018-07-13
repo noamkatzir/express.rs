@@ -1,51 +1,53 @@
+use super::types::*;
 use std::io::BufReader;
 use std::net::TcpStream;
-use std::io::prelude::*;
+use std::io::BufRead;
 use std::collections::HashMap;
 use std::cell::RefCell;
-
-#[derive(Clone)]
-pub enum MethodKind {
-    Get,
-    Post,
-    Put,
-    Delete
-}
-#[derive(Clone)]
-pub enum HttpVersion {
-    V1,
-    V2
-}
-#[derive(Clone)]
-pub enum Connection {
-    KeepAlive,
-    Close
-}
-#[derive(Clone)]
-pub enum CacheControl {
-    MaxAge(i32),
-    NoCache
-}
-#[derive(Clone)]
-pub enum HttpHeader {
-    Host {name: String, port: i32 },
-    UserAgent(String),
-    Referer(String),
-    Accept(Vec<(String,f32)>),
-    AcceptLanguage(Vec<(String,f32)>),
-    AcceptEncoding(Vec<String>),
-    Connection(Connection),
-    UpgradeInsecureRequests,
-    CacheControl(CacheControl),
-    Pragma(String)
-}
 
 pub struct Request {
     method: MethodKind,
     uri: String,
-    query: QueryString,
+    query: Option<QueryString>,
     protocol: HttpVersion,
-    headers: HashMap<String,String>
+    headers: Option<HashMap<String,String>>
+}
+
+pub struct RequestBuilder {
+    method: Option<MethodKind>,
+    uri: Option<String>,
+    query: Option<QueryString>,
+    protocol: Option<HttpVersion>,
+    headers: Option<HashMap<String,String>>
+}
+
+impl RequestBuilder {
+    pub fn new() -> RequestBuilder {
+        RequestBuilder { 
+            method: None, 
+            uri: None, 
+            query: None, 
+            protocol: None, 
+            headers: None
+        }
+    }
+    
+    pub fn method(&mut self, m: MethodKind) -> &mut Self { self.method = Some(m); self }
+    pub fn uri(&mut self, u: String) -> &mut Self { self.uri = Some(u); self }
+    pub fn query(&mut self, q: QueryString) -> &mut Self { self.query = Some(q); self }
+    pub fn protocol(&mut self, p: HttpVersion) -> &mut Self { self.protocol = Some(p); self }
+    pub fn headers(&mut self, h: HashMap<String,String>) -> &mut Self { self.headers = Some(h); self }
+
+    pub fn build(self) -> Request {
+        Request {
+            method: self.method.unwrap(),
+            uri: self.uri.unwrap(),
+            query: self.query,
+            protocol: self.protocol.unwrap(),
+            headers: self.headers
+        }
+    }
+    
 }
 
 impl Request {
@@ -54,7 +56,7 @@ impl Request {
         match reader.read_line(&mut buf) {
             Err(_) | Ok(0) => None,
             Ok(_n) => {
-                match parse_method(&mut buf) {
+                match parse_method(&buf) {
                     Err(_) => None,
                     Ok(tup) => Some(tup)
                 }
@@ -62,7 +64,7 @@ impl Request {
         }
     }
 
-    fn parse_headers(reader: &mut BufReader<&mut TcpStream>) -> Option<HashMap<String,String>> {
+    fn parse_headers(reader: &mut BufReader<&mut TcpStream>) -> HashMap<String,String> {
         let mut headers: HashMap<String,String> = HashMap::new();
         loop {
             let mut buf = String::new();
@@ -88,47 +90,64 @@ impl Request {
             }
         };
 
-        Some(headers)
+        headers
     }
 
-    fn get_uri_and_query_string(url: &str) -> Option<(String,QueryString)> {
-        let split_query_string = url.split("?").collect::<Vec<&str>>();
-        let uri = split_query_string[0];
-        let query_string = split_query_string[1];
-
-        match parse_query_string(query_string) {
-            Some(query) => Some((uri.to_string(),query)),
-            None => None
-        }
-    }
     pub fn parse(stream: &mut TcpStream) -> Option<Request> {
+        let mut builder = RequestBuilder::new();
         let mut reader = BufReader::new(stream);
-        let (method,url,protocol) = match Request::parse_method(&mut reader) {
-            Some(res) => res,
+
+        let url = match Request::parse_method(&mut reader) {
+            Some((method,url,protocol)) => {
+                builder.method(method).protocol(protocol);
+                url
+            },
             _ => return None
         };
 
-        let headers = match Request::parse_headers(&mut reader) {
-            Some(res) => res,
-            _ => return None
+        let headers = Request::parse_headers(&mut reader);
+        builder.headers(headers);
+        
+
+        let split_query_string = url.split("?").collect::<Vec<&str>>();
+        match split_query_string.len() {
+            2 => {
+                match QueryString::parse(split_query_string[1]) {
+                    Some(query) => { builder.query(query); },
+                    _ => {}
+                };
+                builder.uri(split_query_string[0].to_string());
+
+            },
+            1 => {
+                builder.uri(split_query_string[0].to_string());
+            },
+            _ => {}
         };
 
-        match Request::get_uri_and_query_string(&url) {
-            Some((uri, query)) => Some(Request {method, uri, query, protocol, headers}),
-            _ => None
-        }
+        Some(builder.build())
     }
 
     pub fn get_parsed_header(&self, name: &str) -> Option<HttpHeader> {
-        match self.headers.get(name) {
-            Some(value) => Some(parse_header(name,&value)),
+        match self.get_header(name) {
+            Some(value) => {
+                match parse_header(name,&value) {
+                    Ok(header) => Some(header),
+                    _ => None
+                }
+            },
             _ => None
         }
     }
 
     pub fn get_header(&self, name: &str) -> Option<&str> {
-        match self.headers.get(name) {
-            Some(value) => Some(value),
+        match self.headers {
+            Some(ref headers) => {
+                match headers.get(name) {
+                    Some(value) => Some(value),
+                    _ => None
+                }
+            },
             _ => None
         }
     }
@@ -138,41 +157,12 @@ impl Request {
     }
 
     pub fn query(&self, key: &str) -> Option<&QueryStringParam> {
-        self.query.get(key)
+        match self.query {
+            Some(ref query) => query.get(key),
+            None => None
+        }
     }
 }
-
-// pub struct HttpParser<'a> {
-//     underlying: BufReader<&'a TcpStream>
-// }
-// impl<'a> HttpParser<'a> {
-//     pub fn new (reader: BufReader<&'a TcpStream>) -> Self {
-//         HttpParser {
-//             underlying: reader
-//         }
-//     }
-// }
-
-
-// impl<'a> Iterator for HttpParser<'a> {
-//     type Item = HttpHeader;
-
-//     fn next(&mut self) -> Option<HttpHeader> {
-//         let mut buf = String::new();
-//         match self.underlying.read_line(&mut buf) {
-//             Err(_) | Ok(0) => None,
-//             Ok(_n) => {
-//                 if buf.ends_with("\n") {
-//                     buf.pop();
-//                     if buf.ends_with("\r") {
-//                         buf.pop();
-//                     }
-//                 }
-//                 Some(parse_header(&buf))
-//             }
-//         }
-//     }
-// }
 
 fn parse_accept(value : &str) -> Vec<(String,f32)> {
     let mime_types: Vec<&str> = value.rsplit(",").collect();
@@ -195,47 +185,49 @@ fn parse_accept(value : &str) -> Vec<(String,f32)> {
     res
 }
 
-fn parse_method(buf: &String) -> Result<(MethodKind,String,HttpVersion),()> {
+fn parse_method(buf: &String) -> Result<(MethodKind,String,HttpVersion), String> {
     let method = buf.split_whitespace().take(3).collect::<Vec<&str>>();
     if let [method, uri, proto] = &method[..] {
         let protocol = match &**proto {
             "HTTP/1.1" => HttpVersion::V1,
-            _ => panic!("unknoun HTTP version: {}",proto)
+            "HTTP/1.0" => HttpVersion::V1,
+            _ => return Err(format!("unknoun HTTP version: {}",proto))
         };
         let name = match &**method {
             "GET" => MethodKind::Get,
             "POST" => MethodKind::Post,
             "PUT" => MethodKind::Put,
             "DELETE" => MethodKind::Delete,
-            _ => panic!("unknoun HTTP Method")
+            _ => return Err("unknoun HTTP Method".to_string())
         };
         Ok((name, uri.to_string(), protocol))
     } else {
-        Err(())
+        Err(format!("broken method line {}",buf))
     }
 }
 
-fn parse_header(name: &str,value: &String) -> HttpHeader {
-    let value = &value[..];
-    match name {
-        "Host" => {
+fn parse_header(name: &str,value: &str) -> Result<HttpHeader, String> {
+    let name = name.to_lowercase();
+    let name = &name[..];
+    Ok(match name {
+        "host" => {
             let host: Vec<&str> = value.split(":").collect();
             HttpHeader::Host{name: host[0].to_string(), port: host[1].parse().unwrap() }
         },
-        "User-Agent" => HttpHeader::UserAgent(value.to_string()),
-        "Accept" => HttpHeader::Accept(parse_accept(value)),
-        "Referer" => HttpHeader::Referer(value.to_string()),
-        "Pragma" => HttpHeader::Pragma(value.to_string()),
-        "Accept-Language" => HttpHeader::AcceptLanguage(parse_accept(value)),
-        "Accept-Encoding" => HttpHeader::AcceptEncoding(value.split(",").map(|x| x.trim().to_string()).collect()),
-        "Connection" =>  {
+        "user-agent" => HttpHeader::UserAgent(value.to_string()),
+        "accept" => HttpHeader::Accept(parse_accept(value)),
+        "referer" => HttpHeader::Referer(value.to_string()),
+        "pragma" => HttpHeader::Pragma(value.to_string()),
+        "accept-language" => HttpHeader::AcceptLanguage(parse_accept(value)),
+        "accept-encoding" => HttpHeader::AcceptEncoding(value.split(",").map(|x| x.trim().to_string()).collect()),
+        "connection" =>  {
             match value {
                 "keep-alive" => HttpHeader::Connection(Connection::KeepAlive),
                 _ => HttpHeader::Connection(Connection::Close),
             }
         },
-        "Upgrade-Insecure-Requests" =>  HttpHeader::UpgradeInsecureRequests,
-        "Cache-Control" => {
+        "upgrade-insecure-requests" =>  HttpHeader::UpgradeInsecureRequests,
+        "cache-control" => {
             let cache_control: Vec<&str> = value.split("=").collect();
             println!("cache control value: {}", value);
                 
@@ -244,8 +236,8 @@ fn parse_header(name: &str,value: &String) -> HttpHeader {
                 _ => HttpHeader::CacheControl(CacheControl::MaxAge(0))
             }
         },
-        _ => panic!("unknoun HTTP header {} => {}",name,value)
-    }
+        _ => return Err(format!("unknoun HTTP header {} => {}",name,value))
+    })
 }
 
 
@@ -260,42 +252,42 @@ impl QueryString {
     pub fn get(&self, key: &str) -> Option<&QueryStringParam> {
         self.0.get(key)
     }
-}
 
-fn parse_query_string(query_string: &str) -> Option<QueryString> {
-    let mut query_map: HashMap<String,QueryStringParam> = HashMap::new();
-    for param in query_string.split("&") {
-        let segments = param.split("=").collect::<Vec<&str>>();
+    fn parse(query_string: &str) -> Option<QueryString> {
+        let mut query_map: HashMap<String,QueryStringParam> = HashMap::new();
+        for param in query_string.split("&") {
+            let segments = param.split("=").collect::<Vec<&str>>();
 
-        if segments.len() != 2 {
-            return None;
+            if segments.len() != 2 {
+                return None;
+            }
+
+            let is_array = segments[0].ends_with("[]");
+            let key = if is_array { 
+                &segments[0][..(segments[0].len()-2)] 
+            } else {
+                segments[0]
+            };
+            let value = segments[1];
+
+            match query_map.get_mut(key) {
+                Some(QueryStringParam::ArrayParam(ref mut container)) if is_array => {
+                    container.push(value.to_string());
+                    continue;
+                },
+                _ => {}
+            }
+            
+            let value = if is_array {
+                QueryStringParam::ArrayParam(vec![value.to_string()])
+            } else {
+                QueryStringParam::SimpleParam(value.to_string())
+            };
+
+            query_map.insert(key.to_string(),value);
+            
         }
 
-        let is_array = segments[0].ends_with("[]");
-        let key = if is_array { 
-            &segments[0][..(segments[0].len()-2)] 
-        } else {
-            segments[0]
-        };
-        let value = segments[1];
-
-        match query_map.get_mut(key) {
-            Some(QueryStringParam::ArrayParam(ref mut container)) if is_array => {
-                container.push(value.to_string());
-                continue;
-            },
-            _ => {}
-        }
-        
-        let value = if is_array {
-            QueryStringParam::ArrayParam(vec![value.to_string()])
-        } else {
-            QueryStringParam::SimpleParam(value.to_string())
-        };
-
-        query_map.insert(key.to_string(),value);
-        
+        Some(QueryString(query_map))
     }
-
-    Some(QueryString(query_map))
 }
