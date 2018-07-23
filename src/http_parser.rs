@@ -1,4 +1,5 @@
 use super::types::*;
+use std::io::prelude::*;
 use std::io::BufReader;
 use std::net::TcpStream;
 use std::io::BufRead;
@@ -128,6 +129,21 @@ impl Request {
         Some(builder.build())
     }
 
+    pub fn parse2(stream: &mut TcpStream) -> Option<Request> {
+        let mut builder = RequestBuilder::new();
+        let mut buffer = [0u8; 80*1024];
+        loop {
+            let bytes = match stream.read(&mut buffer) {
+                Err(_) | Ok(0) => continue,
+                Ok(n) => n
+            };
+
+            
+
+        }
+        None
+    }
+
     pub fn get_parsed_header(&self, name: &str) -> Option<HttpHeader> {
         match self.get_header(name) {
             Some(value) => {
@@ -185,7 +201,7 @@ fn parse_accept(value : &str) -> Vec<(String,f32)> {
     res
 }
 
-fn parse_method(buf: &String) -> Result<(MethodKind,String,HttpVersion), String> {
+fn parse_method(buf: &str) -> Result<(MethodKind,String,HttpVersion), String> {
     let method = buf.split_whitespace().take(3).collect::<Vec<&str>>();
     if let [method, uri, proto] = &method[..] {
         let protocol = match &**proto {
