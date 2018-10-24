@@ -1,5 +1,4 @@
 use bytes::{Bytes, BufMut, BytesMut};
-use std::collections::HashMap;
 use super::status::Status;
 
 #[derive(Debug)]
@@ -53,21 +52,27 @@ impl Response {
         self
     }
 
-    pub fn add_body(&mut self, body: Bytes) -> &mut Self {
+    pub fn add_full_body(&mut self, body: Bytes) -> &mut Self {
         self.add_header(Bytes::from_static(b"Content-Length"),Bytes::from(format!("{}",body.len())));
         self.body = body;
         self
     }
 
     pub fn generate(&self) -> Bytes {
+        let space_len = " ".len();
+        let end_of_line_len = "\n\r".len();
+        let header_seperator_len = ": ".len();
         let mut count = self.protocol.len() 
-                        + 1 //space
+                        + space_len
                         + self.status.code_bytes_len() 
-                        + 1 //space
+                        + space_len
                         + self.status.to_message().len() 
-                        + 2; //end of line;
-        count += self.headers.iter().fold(0, |acc, (key,value)| acc + key.len()+value.len()+4);
-        count += 2 + self.body.len();
+                        + end_of_line_len;
+        count += self.headers.iter().fold(0, |acc, (key,value)| {
+            acc + key.len()+value.len()+ header_seperator_len + end_of_line_len
+        });
+
+        count += end_of_line_len + self.body.len();
         let mut result = BytesMut::with_capacity(count);
         result.put(self.protocol.clone());
         result.put(b' ');

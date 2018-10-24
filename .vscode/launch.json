@@ -32,6 +32,16 @@
             "args": [],
             "cwd": "${workspaceRoot}",
             "sourceLanguages": ["rust"]
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug trie",
+            "program": "${workspaceRoot}/target/debug/main",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "sourceLanguages": ["rust"]
         }
     ]
 }

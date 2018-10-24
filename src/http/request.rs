@@ -1,5 +1,6 @@
-use bytes::Bytes;
+use bytes::{Bytes};
 use std::collections::HashMap;
+use super::method::MethodKind;
 
 #[derive(Debug)]
 pub enum QueryStringValue {
@@ -8,31 +9,44 @@ pub enum QueryStringValue {
 }
 
 #[derive(Debug)]
-pub struct Request {
-    method: Bytes,
+pub struct RequestBuilder {
+    method: MethodKind,
     uri: Bytes,
+    uri_params: HashMap<Bytes,Bytes>,
     query: HashMap<Bytes,QueryStringValue>,
     headers: HashMap<Bytes,Bytes>,
     body: Bytes
 }
-impl Request {
+impl RequestBuilder {
     pub fn new () -> Self {
-        Request {
-            method: Bytes::new(),
+        RequestBuilder {
+            method: MethodKind::Unknown,
             uri: Bytes::new(),
             query: HashMap::new(),
             headers: HashMap::new(),
+            uri_params: HashMap::new(),
             body: Bytes::new()
         }
     }
 
     pub fn add_method(&mut self, method: Bytes) -> &mut Self {
-        self.method = method;
+        self.method = match &method[..] {
+            b"GET" => MethodKind::Get,
+            b"POST" => MethodKind::Post,
+            b"PUT" => MethodKind::Put,
+            b"DELETE" => MethodKind::Delete,
+            _ => MethodKind::Unknown
+        };
         self
     }
 
     pub fn add_uri(&mut self, uri: Bytes) -> &mut Self {
         self.uri = uri;
+        self
+    }
+
+    pub fn add_uri_params(&mut self, uri_params: HashMap<Bytes,Bytes>) -> &mut Self {
+        self.uri_params = uri_params;
         self
     }
 
@@ -60,4 +74,35 @@ impl Request {
         self.body = body;
         self
     }
+
+    pub fn build(self) -> Request {
+        Request {
+            method: self.method,
+            uri: self.uri,
+            uri_params: self.uri_params,
+            query: self.query,
+            headers: self.headers,
+            body: self.body
+        }
+    }
+
+    pub fn method(&self) -> MethodKind { self.method.clone() }
+
+    pub fn uri(&self) -> Bytes {
+        self.uri.clone()
+    }
+}
+
+pub struct Request {
+    method: MethodKind,
+    uri: Bytes,
+    uri_params: HashMap<Bytes,Bytes>,
+    query: HashMap<Bytes,QueryStringValue>,
+    headers: HashMap<Bytes,Bytes>,
+    body: Bytes
+}
+
+impl Request {
+    pub fn method(&self) -> MethodKind { self.method.clone() }
+
 }

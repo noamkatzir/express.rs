@@ -64,7 +64,7 @@ pub enum Status {
 }
 
 impl Status {
-    pub fn to_code(&self) -> u8 {
+    pub fn to_code(&self) -> u16 {
         match *self {
             Status::Continue => 100,
             Status::SwitchingProtocols => 101,
