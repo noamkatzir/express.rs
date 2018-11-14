@@ -84,6 +84,7 @@ fn main() {
 
     // router.get(b"/", home);
 
-
-    router.bind("localhost", 8080);
+    loop {
+        router.bind("localhost", 8080);
+    }
 }

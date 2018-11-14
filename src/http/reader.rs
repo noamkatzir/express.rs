@@ -52,7 +52,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                 let method = &self.buffer[self.pos..index];
                 let res = match method {
                     b"GET" | b"POST" | b"PUT" | b"DELETE" => Some(Event::Method(Bytes::from(method))),
-                    _ => Some(Event::Err)
+                    _ => Some(Event::Err(1))
                 };
                 self.state = State::Uri;
                 self.pos += index+1;
@@ -169,7 +169,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                         self.pos += index+1;
                         return Some(Event::EndOfHeaders);
                     } else { //this is fatal parsing error, need to think about it
-                        let res = Some(Event::Err);
+                        let res = Some(Event::Err(2));
                         self.pos += index+1;
                         return res;
                     }
@@ -208,7 +208,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                 res.put(&self.buffer[self.pos..self.read_size]);
                 loop {
                     if let Err(_) = self.read_next_page() {
-                        return Some(Event::Err);
+                        return Some(Event::Err(3));
                     }
                     res.put(&self.buffer[0..self.read_size]);
                     left_to_read -= self.read_size;
@@ -217,7 +217,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                         return Some(Event::Body(res.freeze()));
                     }
                     if self.read_size == 0 {
-                        return Some(Event::Err);
+                        return Some(Event::Err(4));
                     }
 
                 }
@@ -239,7 +239,7 @@ pub enum Event {
     ContentLength(usize),
     Body(Bytes),
     EndOfHeaders,
-    Err
+    Err(u8)
 }
 
 enum State {
@@ -259,7 +259,7 @@ impl<'sock,'buf> Iterator for HttpReader<'sock,'buf> {
 
     fn next(&mut self) -> Option<Event> {
         if self.read_next_page().is_err() {
-            return Some(Event::Err);
+            return Some(Event::Err(5));
         }
 
         match self.state {
@@ -270,7 +270,7 @@ impl<'sock,'buf> Iterator for HttpReader<'sock,'buf> {
             State::HeaderName => self.read_header(),
             State::Body => self.read_body(),
             State::End => None,
-            _ => Some(Event::Err)
+            _ => Some(Event::Err(6))
         }
     }
 }

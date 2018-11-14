@@ -1,14 +1,15 @@
 use router::route::RouteAction;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
-use std::time::{Duration, SystemTime};
-use threadpool::ThreadPool;
-use super::route::{Routes, RouterResult};
+use std::time::SystemTime;
+// use threadpool::ThreadPool;
+use thread_pool::ThreadPool;
+use super::route::Routes;
 use std::thread;
-use bytes::Bytes;
 use http::method::MethodKind;
 use http::{HttpReader, Event, RequestBuilder, Request, Response};
 use std::sync::Arc;
+// use std::sync::mpsc::sync_channel;
 
 pub struct Router {
     inner: Arc<InnerRouter>
@@ -66,40 +67,45 @@ impl Router {
 
     pub fn bind(&mut self, host: &str, port: u32) {
         let bind_on = format!("{}:{}", host, port);
-        let pool:ThreadPool = Default::default();
+        let mut pool: ThreadPool = Default::default();
         let listener = TcpListener::bind(bind_on.clone()).unwrap();
         println!("server started on {}", bind_on);
         for stream in listener.incoming() {
             let mut stream = stream.unwrap();
             let inner = self.inner.clone();
             pool.execute(move || {
-                let request_start_time = SystemTime::now();
-                let (request, mut stream) = parse_http_request(stream);
-                let response = Response::new();
+                // let request_start_time = SystemTime::now();
+                match parse_http_request(stream) {
+                    Ok((request, mut stream)) => {
+                        let response = Response::new();
 
-                let mut result = match request.method() {
-                    MethodKind::Get => inner.get.run_callback(request, response),
-                    MethodKind::Post => inner.post.run_callback(request, response),
-                    MethodKind::Put => inner.put.run_callback(request, response),
-                    MethodKind::Delete => inner.delete.run_callback(request, response),
-                    _ => Err(())
-                };
-
-                match result {
-                    Ok(ref mut response) => {
-                        let response = response.generate();
-                        stream.write(&response[..]).unwrap();
-                        stream.flush().unwrap();
-                        println!("request time: {:?}", request_start_time.elapsed().unwrap());
-                    },
-                    _ => { }
+                        let mut result = match request.method() {
+                            MethodKind::Get => inner.get.run_callback(request, response),
+                            MethodKind::Post => inner.post.run_callback(request, response),
+                            MethodKind::Put => inner.put.run_callback(request, response),
+                            MethodKind::Delete => inner.delete.run_callback(request, response),
+                            _ => Err(())
+                        };
+                        {
+                            match result {
+                                Ok(ref mut response) => {
+                                    let response = response.generate();
+                                    stream.write(&response[..]).unwrap();
+                                    stream.flush().unwrap();
+                                    // println!("request time: {:?}", request_start_time.elapsed().unwrap());
+                                },
+                                _ => { }
+                            }
+                        }
+                    }
+                    _ => {}
                 }
             });
         }
     }
 }
 
-fn parse_http_request(mut stream: TcpStream) -> (RequestBuilder, TcpStream) {
+fn parse_http_request(mut stream: TcpStream) -> Result<(RequestBuilder, TcpStream),u8> {
     let mut request = RequestBuilder::new();
 
     {
@@ -114,11 +120,14 @@ fn parse_http_request(mut stream: TcpStream) -> (RequestBuilder, TcpStream) {
                 Uri(uri) => { request.add_uri(uri); },
                 QueryStringParam(name,value) => { request.add_query_param(name, value); },
                 Body(body) => { request.add_body(body); },
-                Err => println!("error"),
+                Err(errorno) => { 
+                    println!("error: {}",errorno);
+                    return Result::Err(errorno);
+                },
                 _ => {}
             };
         }
     }
 
-    (request, stream)
+    Ok((request, stream))
 }
