@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use bytes::Bytes;
 use http::{RequestBuilder, Request, Response};
 use super::reader::{RouteReader,Event};
-use std::sync::Mutex;
 
 pub type RouterResult = Result<Response,()>;
 

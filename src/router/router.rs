@@ -1,13 +1,10 @@
 use router::route::RouteAction;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
-use std::time::SystemTime;
-// use threadpool::ThreadPool;
-use thread_pool::ThreadPool;
+use threadpool::ThreadPool;
 use super::route::Routes;
-use std::thread;
 use http::method::MethodKind;
-use http::{HttpReader, Event, RequestBuilder, Request, Response};
+use http::{HttpReader, Event, RequestBuilder, Response};
 use std::sync::Arc;
 // use std::sync::mpsc::sync_channel;
 
@@ -67,12 +64,18 @@ impl Router {
 
     pub fn bind(&mut self, host: &str, port: u32) {
         let bind_on = format!("{}:{}", host, port);
-        let mut pool: ThreadPool = Default::default();
+        let pool: ThreadPool = Default::default();
         let listener = TcpListener::bind(bind_on.clone()).unwrap();
         println!("server started on {}", bind_on);
         for stream in listener.incoming() {
             let mut stream = stream.unwrap();
             let inner = self.inner.clone();
+            loop {
+                if pool.queued_count() < 900 {
+                    break;
+                }
+            }
+
             pool.execute(move || {
                 // let request_start_time = SystemTime::now();
                 match parse_http_request(stream) {
