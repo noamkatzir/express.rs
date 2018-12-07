@@ -93,6 +93,7 @@ impl RequestBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub struct Request {
     method: MethodKind,
     uri: Bytes,

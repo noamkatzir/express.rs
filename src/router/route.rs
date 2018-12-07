@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use bytes::Bytes;
-use http::{RequestBuilder, Request, Response};
+use super::super::http::{RequestBuilder, Request, Response};
 use super::reader::{RouteReader,Event};
 
 pub type RouterResult = Result<Response,()>;

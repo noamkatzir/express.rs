@@ -1,12 +1,11 @@
-use router::route::RouteAction;
+use super::route::RouteAction;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 use threadpool::ThreadPool;
 use super::route::Routes;
-use http::method::MethodKind;
-use http::{HttpReader, Event, RequestBuilder, Response};
+use super::super::http::method::MethodKind;
+use super::super::http::{HttpReader, Event, RequestBuilder, Response};
 use std::sync::Arc;
-// use std::sync::mpsc::sync_channel;
 
 pub struct Router {
     inner: Arc<InnerRouter>
@@ -68,7 +67,7 @@ impl Router {
         let listener = TcpListener::bind(bind_on.clone()).unwrap();
         println!("server started on {}", bind_on);
         for stream in listener.incoming() {
-            let mut stream = stream.unwrap();
+            let stream = stream.unwrap();
             let inner = self.inner.clone();
             loop {
                 if pool.queued_count() < 900 {

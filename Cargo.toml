@@ -2,6 +2,7 @@
 name = "express"
 version = "0.1.0"
 authors = ["noam"]
+edition = "2018"
 
 [dependencies]
 threadpool = "1.0"
