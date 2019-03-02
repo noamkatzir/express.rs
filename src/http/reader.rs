@@ -2,8 +2,8 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use bytes::{Bytes, BytesMut, BufMut};
 
-static LOWER_CONTENT_LENGTH: &'static [u8] = b"CONTENT-LENGTH";
-static UPPER_CONTENT_LENGTH: &'static [u8] = b"content-length";
+static UPPER_CONTENT_LENGTH: &'static [u8] = b"CONTENT-LENGTH";
+static LOWER_CONTENT_LENGTH: &'static [u8] = b"content-length";
 
 pub struct HttpReader<'sock,'buf> {
     socket: &'sock mut TcpStream,

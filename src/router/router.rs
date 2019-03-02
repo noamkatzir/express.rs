@@ -97,7 +97,7 @@ impl Router {
                                     stream.flush().unwrap();
                                     // println!("request time: {:?}", request_start_time.elapsed().unwrap());
                                 },
-                                _ => { }
+                                _ => ()
                             }
                         }
                     }
