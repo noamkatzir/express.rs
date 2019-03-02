@@ -118,7 +118,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                     self.pos += index+1;
                     return res;
                 },
-                _ => {}
+                _ => ()
             }
         }
 
@@ -190,7 +190,7 @@ impl<'sock,'buf> HttpReader<'sock,'buf> {
                     self.pos += index+1;
                     return res;
                 },
-                _ => {}
+                _ => ()
             }
         }
 

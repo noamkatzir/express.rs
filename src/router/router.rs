@@ -3,8 +3,8 @@ use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 use threadpool::ThreadPool;
 use super::route::Routes;
-use super::super::http::method::MethodKind;
-use super::super::http::{HttpReader, Event, RequestBuilder, Response};
+use crate::http::method::MethodKind;
+use crate::http::{HttpReader, Event, RequestBuilder, Response};
 use std::sync::Arc;
 
 pub struct Router {
@@ -63,7 +63,8 @@ impl Router {
 
     pub fn bind(&mut self, host: &str, port: u32) {
         let bind_on = format!("{}:{}", host, port);
-        let pool: ThreadPool = Default::default();
+        // let pool: ThreadPool = Default::default();
+        let pool: ThreadPool = ThreadPool::new(100);
         let listener = TcpListener::bind(bind_on.clone()).unwrap();
         println!("server started on {}", bind_on);
         for stream in listener.incoming() {

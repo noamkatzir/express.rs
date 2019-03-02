@@ -2,23 +2,13 @@ use bytes::Bytes;
 use express::router::router::Router;
 use express::http::{Request, Response};
 
-
-// fn page (_req: Request, mut res: Response) -> Response {
-//     res.add_json_headers();
-//     res.add_full_body(Bytes::from_static(b"{\"key\":\"value\"}"));
-//     res
-// }
-
-// fn home (_req: Request, mut res: Response) -> Response {
-//     res.add_json_headers();
-//     res.add_full_body(Bytes::from_static(b"{\"home\":\"value\"}"));
-//     res
-// }
-
 fn main() {
     let mut router = Router::new();
 
-    router.get(b"/home/noam/page", |_req: Request, mut res: Response| {
+    router.get(b"/", |_req: Request, mut res: Response| {
+        let headers = _req.headers();
+        let x = (headers.keys(), headers.values());
+        println!("{:?}",x);
         res.add_json_headers();
         res.add_full_body(Bytes::from_static(b"{\"key\":\"value1\"}"));
         res

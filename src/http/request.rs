@@ -88,6 +88,13 @@ impl RequestBuilder {
 
     pub fn method(&self) -> MethodKind { self.method.clone() }
 
+    pub fn is_keep_alive(&self) -> bool {
+        match self.headers.get(&Bytes::from_static(b"Connection")) {
+            Some(con_value) if &con_value[..] == b" keep-alive" => true,
+            _ => false
+        }
+    }
+
     pub fn uri(&self) -> Bytes {
         self.uri.clone()
     }
@@ -105,5 +112,7 @@ pub struct Request {
 
 impl Request {
     pub fn method(&self) -> MethodKind { self.method.clone() }
+
+    pub fn headers(&self) -> HashMap<Bytes,Bytes> { self.headers.clone() }
 
 }

@@ -49,7 +49,7 @@ impl Iterator for RouteReader {
                     self.state = State::Segment;
                     return res;
                 },
-                _ => {}
+                _ => ()
             }
         };
 
