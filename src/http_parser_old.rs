@@ -115,7 +115,7 @@ impl Request {
             2 => {
                 match QueryString::parse(split_query_string[1]) {
                     Some(query) => { builder.query(query); },
-                    _ => {}
+                    _ => ()
                 };
                 builder.uri(split_query_string[0].to_string());
 
@@ -123,7 +123,7 @@ impl Request {
             1 => {
                 builder.uri(split_query_string[0].to_string());
             },
-            _ => {}
+            _ => ()
         };
 
         Some(builder.build())
@@ -291,7 +291,7 @@ impl QueryString {
                     container.push(value.to_string());
                     continue;
                 },
-                _ => {}
+                _ => ()
             }
             
             let value = if is_array {

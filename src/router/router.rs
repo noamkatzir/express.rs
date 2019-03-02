@@ -101,7 +101,7 @@ impl Router {
                             }
                         }
                     }
-                    _ => {}
+                    _ => ()
                 }
             });
         }
@@ -127,7 +127,7 @@ fn parse_http_request(mut stream: TcpStream) -> Result<(RequestBuilder, TcpStrea
                     println!("error: {}",errorno);
                     return Result::Err(errorno);
                 },
-                _ => {}
+                _ => ()
             };
         }
     }

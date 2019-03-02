@@ -55,7 +55,7 @@ impl RequestBuilder {
             self.query.entry(name).and_modify(|v| {
                 match v {
                     QueryStringValue::Array(ref mut vec) => vec.push(value.clone()),
-                    _ => {}
+                    _ => ()
                 }
             }).or_insert(QueryStringValue::Array(vec![value]));
         } else { 
