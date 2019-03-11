@@ -1,6 +1,7 @@
 use bytes::{Bytes};
 use std::collections::HashMap;
 use super::method::MethodKind;
+use super::protocol::Protocol;
 
 #[derive(Debug)]
 pub enum QueryStringValue {
@@ -12,6 +13,7 @@ pub enum QueryStringValue {
 pub struct RequestBuilder {
     method: MethodKind,
     uri: Bytes,
+    version: Protocol,
     uri_params: HashMap<Bytes,Bytes>,
     query: HashMap<Bytes,QueryStringValue>,
     headers: HashMap<Bytes,Bytes>,
@@ -25,7 +27,8 @@ impl RequestBuilder {
             query: HashMap::new(),
             headers: HashMap::new(),
             uri_params: HashMap::new(),
-            body: Bytes::new()
+            body: Bytes::new(),
+            version: Protocol::Unknown
         }
     }
 
@@ -42,6 +45,15 @@ impl RequestBuilder {
 
     pub fn add_uri(&mut self, uri: Bytes) -> &mut Self {
         self.uri = uri;
+        self
+    }
+
+    pub fn add_version(&mut self, version: Bytes) -> &mut Self {
+        self.version = match &version[..] {
+            b"HTTP/1.1" => Protocol::HTTP11,
+            b"HTTP/1.0" => Protocol::HTTP1,
+            _ => Protocol::Unknown
+        };
         self
     }
 
@@ -88,11 +100,23 @@ impl RequestBuilder {
 
     pub fn method(&self) -> MethodKind { self.method.clone() }
 
-    pub fn is_keep_alive(&self) -> bool {
-        match self.headers.get(&Bytes::from_static(b"Connection")) {
-            Some(con_value) if &con_value[..] == b" keep-alive" => true,
+    pub fn has_keep_alive(&self) -> bool {
+        match self.version {
+            Protocol::HTTP1 => {
+                match self.headers.get(&Bytes::from_static(b"Connection")) {
+                    Some(con_value) if &con_value[..] == b" keep-alive" => true,
+                    _ => false
+                }
+            }
+            Protocol::HTTP11 => {
+                match self.headers.get(&Bytes::from_static(b"Connection")) {
+                    Some(con_value) if &con_value[..] == b" close" => false,
+                    _ => true
+                }
+            }
             _ => false
         }
+        
     }
 
     pub fn uri(&self) -> Bytes {

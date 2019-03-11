@@ -31,6 +31,24 @@ impl Response {
         self
     }
 
+    pub fn add_html_headers(&mut self) -> &mut Self {
+        self.add_header_str(b"Server",b"Noam's") 
+            .add_header_str(b"Content-Type",b"text/html; charset=utf-8")
+            .add_header_str(b"Access-Control-Allow-Origin",b"*")
+            .add_header_str(b"Cache-Control",b"no-cache")
+            .add_header_str(b"Status",b"200 OK");
+
+        self.set_protocol(Bytes::from_static(b"HTTP/1.1"));
+
+        self
+    }
+
+    pub fn add_gzip_headers(&mut self) -> &mut Self {
+        self.add_header_str(b"Content-Encoding",b"deflate");
+
+        self
+    }
+
     pub fn set_protocol(&mut self, protocol: Bytes) -> &mut Self {
         self.protocol = protocol;
         self

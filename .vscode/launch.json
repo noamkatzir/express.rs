@@ -27,7 +27,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug Hello",
+            "name": "Debug Express.rs",
             "program": "${workspaceRoot}/target/debug/${workspaceRootFolderName}",
             "args": [],
             "cwd": "${workspaceRoot}",
