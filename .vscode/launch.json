@@ -37,6 +37,16 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug Express.rs E2E",
+            "program": "${workspaceRoot}/target/debug/e2e_test-c6c44f8bac85f7c2",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "sourceLanguages": ["rust"]
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug trie",
             "program": "${workspaceRoot}/target/debug/main",
             "args": [],
