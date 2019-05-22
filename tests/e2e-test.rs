@@ -17,7 +17,7 @@ fn test_simple_server() {
 
     let client = Client::new("localhost",8080);
     match client.getRequest(b"/path/to/action") {
-        Ok(result) => assert_eq!(result.body(),*body),
+        Ok(result) => assert_eq!(result.body(), *body, "actual {} expected {}", result.body(), *body),
         Err(_) => assert!(false, "result returned error")
     }
 }
