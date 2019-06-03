@@ -174,3 +174,14 @@ Percentage of the requests served within a certain time (ms)
   99%     77
  100%   1092 (longest request)
 ```
+
+
+# Spec
+
+nodejs using pm2 is using 25mb per process (total 200mb)
+express.rs is using 300kb
+
+both examples use hard coded json response, which means both of them are using optimization related to const varibales which are not simulation real life use case. In the future I plane on adding real app with connection to MYSQL and Adaptive Replacement Cache (ARC) for more realistic test
+
+Nodejs is using non-blocking io, while express.rs is using the old blocking api
+I guess if express.rs will use non-blocking io we can see mpore substantial change in the numbers
