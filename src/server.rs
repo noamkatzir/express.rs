@@ -5,9 +5,13 @@ use bytes::Bytes;
 
 pub mod router;
 pub mod method;
+pub mod protocol;
+pub mod status;
 pub mod handler;
 use router::Router;
 use method::RequestMethod;
+use protocol::Protocol;
+use handler::RequestBuilder;
 
 #[allow(dead_code)]
 pub struct Server {
@@ -40,9 +44,8 @@ impl Server {
         stream.read(&mut buffer);
 
         let route = parse_buffer(&buffer);
-        let result = self.router.call(&RequestMethod::Get, &route)?;
-        stream.write_fmt(format_args!("{}", result));
-        Ok(())
+        let result = self.router.call(RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, route.clone()))?;
+        result.send_response(&mut stream)
     }
 }
 

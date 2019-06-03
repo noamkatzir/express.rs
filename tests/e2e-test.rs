@@ -1,6 +1,8 @@
 use express::client::Client;
 use express::server::router::Router;
 use std::sync::Arc;
+use express::server::handler::{RequestBuilder, ResponseBuilder};
+use bytes::{Bytes, BytesMut, BufMut};
 // use rand::*;
 mod common;
 
@@ -9,7 +11,12 @@ fn test_simple_server() {
     let body = Arc::new(common::rand_string(10));
     let other_body = body.clone();
     let mut router = Router::new();
-    router.get(b"/path/to/action", move |_dummy| { (*other_body).clone() });
+    router.get(b"/path/to/action", move |_dummy| { 
+        let x = (*other_body).clone();
+        let respones_builder = ResponseBuilder::new(Bytes::from((*other_body).clone()));
+        (*other_body).clone();
+        respones_builder
+        });
 
     common::given_server_started_with("localhost",8080,router);
 

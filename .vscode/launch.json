@@ -5,6 +5,8 @@
     "version": "0.2.0",
     "configurations": [
 
+
+
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
@@ -39,6 +41,16 @@
             "request": "launch",
             "name": "Debug Express.rs E2E",
             "program": "${workspaceRoot}/target/debug/e2e_test-c6c44f8bac85f7c2",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "sourceLanguages": ["rust"]
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Express.rs router",
+            "program": "${workspaceRoot}/target/debug/deps/router_test-420d680e32bdb3ce",
             "args": [],
             "cwd": "${workspaceRoot}",
             "sourceLanguages": ["rust"]
