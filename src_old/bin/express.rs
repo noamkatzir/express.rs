@@ -28,7 +28,7 @@ fn main() {
 
     router.get(b"/home/noam2/page2", |_req: Request, mut res: Response| {
         res.add_json_headers();
-        res.add_full_body(Bytes::from_static(b"{\"key\":\"value2\"}"));
+        res.add_full_body(Bytes::from_static(b"{key:\"value1\", value: {key:\"value1\", value: {key:\"value1\", value: {key:\"value1\"}}}}"));
         res
     });
 
