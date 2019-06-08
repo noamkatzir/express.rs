@@ -1,57 +1,50 @@
+use express::server::handler::Request;
+use std::sync::mpsc::Receiver;
 use express::server::router::Router;
 use express::server::method::RequestMethod;
 use express::server::protocol::Protocol;
 use express::server::handler::{RequestBuilder, ResponseBuilder};
 use std::sync::{Arc,Mutex};
 use std::collections::HashMap;
+use std::sync::mpsc::channel;
 use bytes::{Bytes, BytesMut, BufMut};
 mod common;
 
 type CallMap = Arc<Mutex<HashMap<u64,bool>>>;
 #[test]
 fn single_route_test() {
-    let validation_key = Arc::new(common::rand_u64());
-    let call_map: CallMap = Arc::new(Mutex::new(HashMap::new()));
     let uri = b"/path/to/action";
     let mut router = Router::new();
-    given_routing_for(&mut router, uri, validation_key.clone(), call_map.clone());
+    let receiver = given_routing_for(&mut router, uri);
     let request_builder = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&uri[..]));
     let result = router.call(request_builder);
-    validate_response(&call_map, validation_key);
+    receiver.try_recv().expect("result returned error");
 }
 
 #[test]
 fn multiple_route_test() {
     let routing1 = b"/path/to/action1";
     let routing2 = b"/path/to/action2";
-
-    let validation_key1 = Arc::new(common::rand_u64());
-    let validation_key2 = Arc::new(common::rand_u64());
-    let call_map: CallMap = Arc::new(Mutex::new(HashMap::new()));
-
+    
     let mut router = Router::new();
-    given_routing_for(&mut router, routing1, validation_key1.clone(), call_map.clone());
-    given_routing_for(&mut router, routing2, validation_key2.clone(), call_map.clone());
+    let receiver1 = given_routing_for(&mut router, routing1);
+    let receiver2 = given_routing_for(&mut router, routing2);
     
     let request_builder1 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing1[..]));
     router.call(request_builder1);
-    validate_response(&call_map, validation_key1);
+    receiver1.try_recv().expect("result returned error");
 
     let request_builder2 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing2[..]));
     let result = router.call(request_builder2);
-    validate_response(&call_map, validation_key2);
+    receiver2.try_recv().expect("result returned error");
 }
 
-fn given_routing_for(router: &mut Router, uri: &'static [u8], validation_key: Arc<u64>, call_map: CallMap) {
-    router.get(uri, move |_dummy| { 
+fn given_routing_for(router: &mut Router, uri: &'static [u8]) -> Receiver<Request> {
+    let (transmitter, receiver) = channel();
+    router.get(uri, move |request| { 
         let respones_builder = ResponseBuilder::new(Bytes::from(common::rand_string(10)));
-        let mut map_mutator = call_map.lock().unwrap();
-        (*map_mutator).insert(*validation_key,true);
+        transmitter.send(request).unwrap();
         respones_builder
     });
-}
-
-fn validate_response(call_map: &CallMap, validation_key: Arc<u64>) {
-    let map_getter = call_map.lock().unwrap();
-    (*map_getter).get(&*validation_key).expect("result returned error");
+    receiver
 }

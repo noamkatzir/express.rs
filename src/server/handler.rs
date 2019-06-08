@@ -7,13 +7,13 @@ use std::net::TcpStream;
 use std::io::prelude::*;
 use std::io::Result;
 
-pub trait RequestHandler: Send + Sync + 'static {
+pub trait RequestHandler: Send + 'static {
     fn action(&self,request: Request) -> ResponseBuilder;
 }
 
 impl<F> RequestHandler for F
 where
-    F: Send + Sync + 'static + Fn(Request) -> ResponseBuilder,
+    F: Send + 'static + Fn(Request) -> ResponseBuilder,
 {
     fn action(&self,request: Request) -> ResponseBuilder {
         (*self)(request)
