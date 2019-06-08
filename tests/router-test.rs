@@ -15,16 +15,14 @@ fn single_route_test() {
     let uri = b"/path/to/action";
     let mut router = Router::new();
     given_routing_for(&mut router, uri, validation_key.clone(), call_map.clone());
-    let mut request_builder = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&uri[..]));
-    let result = router.call(request_builder /*&RequestMethod::Get, &Bytes::from(&uri[..])*/);
+    let request_builder = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&uri[..]));
+    let result = router.call(request_builder);
     validate_response(&call_map, validation_key);
 }
 
 #[test]
 fn multiple_route_test() {
-    // let routing_response1 = Arc::new(common::rand_string(10));
     let routing1 = b"/path/to/action1";
-    // let routing_response2 = Arc::new(common::rand_string(10));
     let routing2 = b"/path/to/action2";
 
     let validation_key1 = Arc::new(common::rand_u64());
@@ -35,18 +33,18 @@ fn multiple_route_test() {
     given_routing_for(&mut router, routing1, validation_key1.clone(), call_map.clone());
     given_routing_for(&mut router, routing2, validation_key2.clone(), call_map.clone());
     
-    let mut request_builder1 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing1[..]));
-    let result = router.call(request_builder1 /*&RequestMethod::Get, &Bytes::from(&routing1[..])*/);
+    let request_builder1 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing1[..]));
+    router.call(request_builder1);
     validate_response(&call_map, validation_key1);
 
-    let mut request_builder2 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing2[..]));
-    let result = router.call(request_builder2 /*&RequestMethod::Get, &Bytes::from(&routing2[..])*/);
+    let request_builder2 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing2[..]));
+    let result = router.call(request_builder2);
     validate_response(&call_map, validation_key2);
 }
 
 fn given_routing_for(router: &mut Router, uri: &'static [u8], validation_key: Arc<u64>, call_map: CallMap) {
     router.get(uri, move |_dummy| { 
-        let respones_builder = ResponseBuilder::new();
+        let respones_builder = ResponseBuilder::new(Bytes::from(common::rand_string(10)));
         let mut map_mutator = call_map.lock().unwrap();
         (*map_mutator).insert(*validation_key,true);
         respones_builder

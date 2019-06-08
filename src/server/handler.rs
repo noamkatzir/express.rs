@@ -62,6 +62,7 @@ impl RequestBuilder {
     }
 }
 
+#[derive(Debug)]
 pub struct Request {
     method: RequestMethod,
     protocol: Protocol,

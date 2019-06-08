@@ -20,7 +20,7 @@ impl Router {
         self.get.insert(Bytes::from(uri), Box::new(callback));
     }
 
-    pub fn call(&self, request_builder: RequestBuilder /*method: &RequestMethod, uri: &Bytes*/) -> std::io::Result<ResponseBuilder> {
+    pub fn call(&self, request_builder: RequestBuilder) -> std::io::Result<ResponseBuilder> {
         let request = request_builder.build();
 
         match request.get_method() {
