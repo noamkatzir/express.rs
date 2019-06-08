@@ -1,23 +1,21 @@
+#![allow(unused_must_use)]
 use express::server::handler::Request;
 use std::sync::mpsc::Receiver;
 use express::server::router::Router;
 use express::server::method::RequestMethod;
 use express::server::protocol::Protocol;
 use express::server::handler::{RequestBuilder, ResponseBuilder};
-use std::sync::{Arc,Mutex};
-use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use bytes::{Bytes, BytesMut, BufMut};
 mod common;
 
-type CallMap = Arc<Mutex<HashMap<u64,bool>>>;
 #[test]
 fn single_route_test() {
     let uri = b"/path/to/action";
     let mut router = Router::new();
     let receiver = given_routing_for(&mut router, uri);
     let request_builder = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&uri[..]));
-    let result = router.call(request_builder);
+    router.call(request_builder);
     receiver.try_recv().expect("result returned error");
 }
 
@@ -35,7 +33,7 @@ fn multiple_route_test() {
     receiver1.try_recv().expect("result returned error");
 
     let request_builder2 = RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, Bytes::from(&routing2[..]));
-    let result = router.call(request_builder2);
+    router.call(request_builder2);
     receiver2.try_recv().expect("result returned error");
 }
 
