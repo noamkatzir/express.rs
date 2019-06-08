@@ -40,9 +40,9 @@ fn multiple_route_test() {
 fn given_routing_for(router: &mut Router, uri: &'static [u8]) -> Receiver<Request> {
     let (transmitter, receiver) = channel();
     router.get(uri, move |request| { 
-        let respones_builder = ResponseBuilder::new(Bytes::from(common::rand_string(10)));
+        let responses_builder = ResponseBuilder::new(Bytes::from(common::rand_string(10)));
         transmitter.send(request).unwrap();
-        respones_builder
+        responses_builder
     });
     receiver
 }

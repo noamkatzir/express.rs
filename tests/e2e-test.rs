@@ -13,9 +13,9 @@ fn test_simple_server() {
     let mut router = Router::new();
     router.get(b"/path/to/action", move |_dummy| { 
         let x = (*other_body).clone();
-        let respones_builder = ResponseBuilder::new(Bytes::from((*other_body).clone()));
+        let responses_builder = ResponseBuilder::new(Bytes::from((*other_body).clone()));
         (*other_body).clone();
-        respones_builder
+        responses_builder
         });
 
     common::given_server_started_with("localhost",8080,router);
