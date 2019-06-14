@@ -44,7 +44,11 @@ impl Server {
         stream.read(&mut buffer);
 
         let route = parse_buffer(&buffer);
-        let result = self.router.call(RequestBuilder::new(RequestMethod::Get, Protocol::HTTP1, route.clone()))?;
+        let mut request_builder = RequestBuilder::new();
+        request_builder.set_method(RequestMethod::Get)
+        .set_protocol(Protocol::HTTP1)
+        .set_uri(route.clone());
+        let result = self.router.call(request_builder)?;
         result.send_response(&mut stream)
     }
 }

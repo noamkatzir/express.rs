@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use bytes::Bytes;
+use bytes::{Bytes, Buf, IntoBuf};
 
 use super::handler::*;
 use super::method::*;
